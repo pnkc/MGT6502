@@ -1,5 +1,5 @@
 # Bryson Cook
-# MGT6502x, Summer 2018 HW2
+# MGT6502x, Summer 2018 HW2, part 1
 
 rm(list = ls())
 cat("\014")
@@ -32,3 +32,14 @@ for (i in 1:length(C1$ShelveLoc)){
 
 head(C1)
 
+m1 = lm(Sales ~ Price, C1)
+summary(m1)
+
+m2 = lm(Sales ~ Price+Bad_Shelf+Good_Shelf, C1)
+summary(m2)
+
+m3 = lm(Sales ~ Price+ShelveLoc, C1)
+summary(m3)
+
+m4 = lm(Sales ~ Price+Bad_Shelf+Good_Shelf+Price_Bad_Shelf+Price_Good_Shelf, C1)
+summary(m4)
