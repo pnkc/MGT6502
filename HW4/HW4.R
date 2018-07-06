@@ -1,0 +1,103 @@
+# Bryson Cook
+# MGT6502x, Summer 2018 HW4
+
+rm(list = ls())
+cat("\014")
+set.seed(1)
+
+
+#install.packages("tidytext")
+#install.packages("wordcloud")
+#install.packages("tidyverse")
+#install.packages("tm")
+#install.packages("ldatuning")
+library(tidytext)
+library(ISLR)
+library(dplyr)
+library(SnowballC)
+library(wordcloud)
+library(ggplot2)
+library(tidytext)
+library(tm)
+library(ldatuning)
+library(topicmodels)
+
+
+load("review.rdata")
+
+head(review)
+
+tidydata = review %>%
+  unnest_tokens(word, text) %>% 
+  anti_join(stop_words) %>% 
+  filter(word != "br") %>% #HTML tag <br /><br /> results in the word "br"
+  mutate(word = wordStem(word))
+
+head(tidydata)
+
+tidydata %>%
+  count(word, sort = TRUE) %>%
+  slice(1:50)
+
+tidydata %>%
+  count(word) %>%
+  with(wordcloud(word, n, max.words = 100))
+
+
+
+tidydata_sentiment <- tidydata %>%
+  inner_join(get_sentiments("bing"), by = "word")  %>%
+  count(word, sentiment, sort = TRUE) 
+
+dimnames(tidydata_sentiment) = tidydata_sentiment[1]
+head(tidydata_sentiment)
+write.csv(tidydata_sentiment, file = "tidydata_sentiment.csv") # I couldn't get the comparison cloud figured out
+
+
+
+tidy_data_sentiment <- tidydata %>%
+  inner_join(get_sentiments("afinn"), by = "word")
+
+#Now get average sentiment score for each productId to plot rating vs. avg_score
+tidy_data_sentiment_prod <- tidy_data_sentiment %>% 
+  group_by(productId) %>% 
+  summarise(avg_score=mean(score),
+            sum_score=sum(score),
+            avg_rating = mean(rating))
+
+
+ggplot(tidy_data_sentiment_prod, aes(x=avg_score, y=avg_rating)) +
+  geom_point(shape=1) +    # Use hollow circles
+  geom_smooth(method=lm,   # Add linear regression line
+              se=TRUE)    # Don't add shaded confidence region
+
+ggplot(tidy_data_sentiment_prod, aes(x=sum_score, y=avg_rating)) +
+  geom_point(shape=1) +    # Use hollow circles
+  geom_smooth(method=lm,   # Add linear regression line
+              se=TRUE)    # Don't add shaded confidence region
+
+
+
+
+data_dtm <- tidydata %>%
+  count(productId, word, sort = TRUE) %>%
+  ungroup() %>%
+  cast_dtm(productId, word, n)
+
+# 4 topics
+product_lda <- LDA(data_dtm, k = 4, control = list(seed = 1234))
+
+product_topics <- tidy(product_lda, matrix = "beta")
+
+top_terms <- product_topics %>%
+  group_by(topic) %>%
+  top_n(5, beta) %>%
+  ungroup() %>%
+  arrange(topic, -beta)
+
+top_terms %>%
+  mutate(term = reorder(term, beta)) %>%
+  ggplot(aes(term, beta, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free") +
+  coord_flip()
