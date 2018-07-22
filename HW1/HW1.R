@@ -6,8 +6,9 @@ cat("\014")
 set.seed(1)
 
 #install.packages("ISLR")
-#install.packages("ISLR")
+#install.packages("VIF")
 library(ISLR)
+library(car)
 
 data = data.frame(Auto)
 head(data)
@@ -32,4 +33,4 @@ summary(model2)
 hp2 = data.frame(horsepower = 104.5,cylinders = 4, weight = 3000, acceleration = 16, year = 80)
 
 predict.lm(model2, hp2, interval = "predict")
-VIF(model2)
+vif(model2)
